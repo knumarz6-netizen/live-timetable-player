@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Live Timetable Switcher</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Orbitron:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="page-header">
+        <div>
+          <h1>AI LIVE TIMETABLE</h1>
+        </div>
+        <p class="header-copy">
+          タイムテーブルをクリックして、3つの配信ステージをシームレスに切り替え
+        </p>
+      </header>
+
+      <main class="layout-grid">
+        <section class="main-stack">
+          <section class="hero-grid">
+            <article class="player-card panel">
+              <div class="player-topbar">
+                <div class="stage-chip" id="liveBadge">LIVE</div>
+                <div>
+                  <p class="player-label">NOW WATCHING</p>
+                  <h2 id="playerStageName">VOID STAGE</h2>
+                </div>
+              </div>
+
+              <div class="player-frame">
+                <iframe
+                  id="stagePlayer"
+                  title="Selected stage player"
+                  src=""
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowfullscreen
+                ></iframe>
+              </div>
+
+              <div class="player-footer">
+                <div>
+                  <p class="meta-label" id="playerProgramLabel">CURRENT SLOT</p>
+                  <p class="meta-value" id="playerProgramTitle">MIRAGE</p>
+                </div>
+                <div>
+                  <p class="meta-label" id="playerMetaTimeLabel">TIME</p>
+                  <p class="meta-value" id="playerProgramTime">10:00 - 10:30</p>
+                </div>
+                <div id="viewerMetaBlock">
+                  <p class="meta-label">VIEWERS</p>
+                  <p class="meta-value" id="viewerCount">12,458</p>
+                </div>
+              </div>
+            </article>
+
+            <aside class="status-rail">
+              <article class="panel stat-card clock-card">
+                <p class="stat-label">CURRENT TIME</p>
+                <p class="clock" id="clockNow">00:00</p>
+                <p class="date-line" id="clockDate">2026.06.16</p>
+              </article>
+
+              <article class="panel stat-card">
+                <p class="stat-label">STAGE STATUS</p>
+                <div class="status-list" id="stageStatus"></div>
+              </article>
+
+              <article class="panel stat-card">
+                <p class="stat-label">UP NEXT</p>
+                <h3 id="nextEventTitle">Loading...</h3>
+                <p class="next-meta" id="nextEventMeta"></p>
+                <p class="countdown" id="nextEventCountdown"></p>
+              </article>
+            </aside>
+          </section>
+
+          <section class="panel timetable-panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow" id="scheduleEyebrow">CLICK TO SWITCH</p>
+                <h2 id="scheduleTitle">TIME TABLE</h2>
+              </div>
+              <div class="section-note" id="scheduleLegend">
+                <span class="legend-dot legend-selected"></span> Selected
+                <span class="legend-dot legend-live"></span> On Air
+              </div>
+            </div>
+
+            <div class="timetable-frame" id="timetableFrame">
+              <div class="time-scale-wrap" id="timeScaleWrap">
+                <div class="time-scale-spacer"></div>
+                <div class="time-scale" id="timeScale"></div>
+                <div class="time-indicator">
+                  <span id="timelineClock">00:00</span>
+                </div>
+              </div>
+              <div class="timetable-rows" id="timetableRows"></div>
+            </div>
+          </section>
+        </section>
+
+        <aside class="chat-panel panel">
+          <div class="chat-header">
+            <div class="chat-title-line">
+              <p class="eyebrow">STAGE LINKED</p>
+              <h2>YOUTUBE CHAT</h2>
+            </div>
+            <div class="chat-stage-pill" id="chatStagePill">VOID STAGE</div>
+          </div>
+
+          <div class="chat-body youtube-chat">
+            <iframe
+              id="youtubeChatFrame"
+              title="YouTube live chat"
+              loading="lazy"
+              referrerpolicy="strict-origin-when-cross-origin"
+            ></iframe>
+            <p class="chat-help" id="youtubeChatHelp"></p>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
