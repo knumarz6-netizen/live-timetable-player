@@ -1,44 +1,68 @@
-const stageConfigs = [
+﻿const DEFAULT_STAGE_CONFIGS = [
   {
     id: "neo",
     name: "NEO STAGE",
     shortName: "NEO",
     venue: "OUTDOOR",
-    contentMode: "video",
-    videoTitle: 'Live "SAIHATE"',
     color: "#c9ff2f",
-    videoId: "XQfk5PReT-c",
     viewers: 12458,
+    contentMode: "premiere",
+    videoTitle: "DAY 1",
+    videoId: "Y00aijSgbo4",
+    youtubeUrl: "https://youtu.be/Y00aijSgbo4?si=5L1h0oQDcDNLDPPk",
+    timeline: [
+      { start: "19:00", end: "19:05", title: "オープニング" },
+      { start: "19:05", end: "20:00", title: "1-13 and mora..." },
+      { start: "20:00", end: "20:05", title: "14 Baumkuchen-Man" },
+      { start: "20:05", end: "21:00", title: "14-28 and mora..." },
+      { start: "21:00", end: "21:05", title: "29 Jayz" },
+      { start: "21:05", end: "21:30", title: "30-35 and mora..." },
+    ],
   },
   {
     id: "void",
     name: "VOID STAGE",
     shortName: "VOID",
     venue: "INDOOR",
-    contentMode: "video",
-    videoTitle: "今聴くべき生成AI音楽50曲",
     color: "#ff4d9e",
-    videoId: "BIq9_pMI8po",
     viewers: 23084,
+    contentMode: "premiere",
+    videoTitle: "DAY 2",
+    videoId: "4ZcmQB-O_rA",
+    youtubeUrl: "https://www.youtube.com/watch?v=4ZcmQB-O_rA",
+    timeline: [
+      { start: "19:00", end: "19:05", title: "オープニング" },
+      { start: "19:05", end: "20:00", title: "1-13 and mora..." },
+      { start: "20:00", end: "20:05", title: "14 ∫varts" },
+      { start: "20:05", end: "21:00", title: "14-26 and mora..." },
+      { start: "21:00", end: "21:05", title: "27 Pink Shih Tzu (AI CREATOR PONTA)" },
+      { start: "21:05", end: "21:45", title: "28-35 and mora..." },
+      { start: "21:45", end: "21:50", title: "フィナーレ＆エンディング" },
+    ],
   },
   {
     id: "echo",
     name: "ECHO STAGE",
     shortName: "ECHO",
     venue: "WAREHOUSE",
-    contentMode: "video",
-    videoTitle: "今聴くべき生成AI音楽62曲",
     color: "#27d3ff",
-    videoId: "5mk_-OroffE",
     viewers: 9780,
+    contentMode: "video",
+    videoTitle: 'Live "SAIHATE"',
+    videoId: "XQfk5PReT-c",
+    youtubeUrl: "https://youtu.be/XQfk5PReT-c",
+    timeline: [
+      { start: "09:30", end: "10:00", title: "FADE IN/OUT" },
+      { start: "10:00", end: "10:30", title: "LOST SIGNAL" },
+      { start: "10:30", end: "11:00", title: "BEYOND THE ECHO" },
+      { start: "11:00", end: "11:30", title: "STATIC PULSE" },
+    ],
   },
 ];
 
-const titlesByStage = {
-  neo: ["ZENITH", "RAVEN HOLLOW", "NOVA PARADOX", "SKY SHOUT"],
-  void: ["LUCID FREQUENCY", "MIRAGE", "ECLIPSE DRIVE", "BLACK GLARE"],
-  echo: ["FADE IN/OUT", "LOST SIGNAL", "BEYOND THE ECHO", "STATIC PULSE"],
-};
+let stageConfigs = DEFAULT_STAGE_CONFIGS.map(cloneStageConfig);
+
+const CONFIG_ENDPOINTS = ["/api/stage-config", "/stage-config.local.json"];
 
 const state = {
   selectedStageId: "void",
@@ -78,7 +102,10 @@ const elements = {
   youtubeChatHelp: document.getElementById("youtubeChatHelp"),
 };
 
-function init() {
+async function init() {
+  await loadStageConfigs();
+
+  state.selectedStageId = getStageById(state.selectedStageId)?.id ?? stageConfigs[0]?.id ?? "void";
   state.schedule = buildSchedule();
   state.selectedProgramId = getDefaultProgramForStage(state.selectedStageId)?.id ?? state.schedule[0]?.id ?? null;
 
@@ -91,29 +118,180 @@ function init() {
   setInterval(tick, 1000);
 }
 
-function buildSchedule() {
-  const now = new Date();
-  const rounded = new Date(now);
-  rounded.setMinutes(Math.floor(now.getMinutes() / 15) * 15, 0, 0);
+async function loadStageConfigs() {
+  for (const endpoint of CONFIG_ENDPOINTS) {
+    try {
+      const response = await fetch(endpoint, {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      });
 
-  state.startTime = addMinutes(rounded, -45);
-  state.endTime = addMinutes(state.startTime, 180);
+      if (!response.ok) {
+        continue;
+      }
 
-  const offsets = {
-    neo: [0, 30, 60, 90],
-    void: [15, 45, 75, 105],
-    echo: [30, 60, 90, 120],
+      const data = await response.json();
+      const normalized = normalizeStageConfigs(data);
+      if (normalized.length > 0) {
+        stageConfigs = normalized;
+        return;
+      }
+    } catch {
+      // Fall through to the next source.
+    }
+  }
+
+  stageConfigs = DEFAULT_STAGE_CONFIGS.map(cloneStageConfig);
+}
+
+function normalizeStageConfigs(data) {
+  const source = Array.isArray(data?.stages)
+    ? data.stages
+    : data && typeof data === "object"
+      ? Object.entries(data).map(([id, value]) => ({ id, ...value }))
+      : [];
+
+  return DEFAULT_STAGE_CONFIGS.map((defaultStage) => {
+    const incoming = source.find((stage) => stage.id === defaultStage.id);
+    if (!incoming) {
+      return cloneStageConfig(defaultStage);
+    }
+
+    const youtubeUrl = typeof incoming.youtubeUrl === "string" ? incoming.youtubeUrl.trim() : "";
+    const extractedVideoId = extractVideoId(youtubeUrl);
+    const videoId = typeof incoming.videoId === "string" && incoming.videoId.trim()
+      ? incoming.videoId.trim()
+      : extractedVideoId ?? defaultStage.videoId;
+
+    return {
+      ...cloneStageConfig(defaultStage),
+      contentMode: incoming.contentMode === "premiere" ? "premiere" : "video",
+      videoTitle:
+        typeof incoming.title === "string" && incoming.title.trim()
+          ? incoming.title.trim()
+          : typeof incoming.videoTitle === "string" && incoming.videoTitle.trim()
+            ? incoming.videoTitle.trim()
+            : defaultStage.videoTitle,
+      youtubeUrl: youtubeUrl || `https://youtu.be/${videoId}`,
+      videoId,
+      viewers:
+        typeof incoming.viewers === "number" && Number.isFinite(incoming.viewers)
+          ? incoming.viewers
+          : defaultStage.viewers,
+      timeline: normalizeTimeline(incoming.timeline, defaultStage.timeline),
+    };
+  });
+}
+
+function normalizeTimeline(incomingTimeline, fallbackTimeline) {
+  if (!Array.isArray(incomingTimeline) || incomingTimeline.length === 0) {
+    return fallbackTimeline.map((slot) => ({ ...slot }));
+  }
+
+  const normalized = incomingTimeline
+    .map((slot) => ({
+      start: normalizeTimeString(slot?.start),
+      end: normalizeTimeString(slot?.end),
+      title: typeof slot?.title === "string" ? slot.title.trim() : "",
+    }))
+    .filter((slot) => slot.start && slot.end && slot.title);
+
+  return normalized.length > 0 ? normalized : fallbackTimeline.map((slot) => ({ ...slot }));
+}
+
+function normalizeTimeString(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const trimmed = value.trim();
+  return /^\d{2}:\d{2}$/.test(trimmed) ? trimmed : "";
+}
+
+function cloneStageConfig(stage) {
+  return {
+    ...stage,
+    timeline: stage.timeline.map((slot) => ({ ...slot })),
   };
+}
 
-  return stageConfigs.flatMap((stage) =>
+function extractVideoId(urlOrId) {
+  if (typeof urlOrId !== "string") {
+    return null;
+  }
+
+  const input = urlOrId.trim();
+  if (!input) {
+    return null;
+  }
+
+  if (/^[\w-]{11}$/.test(input)) {
+    return input;
+  }
+
+  try {
+    const url = new URL(input);
+    if (url.hostname.includes("youtu.be")) {
+      return url.pathname.replace(/^\/+/, "").slice(0, 11) || null;
+    }
+
+    if (url.hostname.includes("youtube.com")) {
+      return url.searchParams.get("v")?.slice(0, 11) ?? null;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function buildSchedule() {
+  const baseDate = new Date();
+  baseDate.setSeconds(0, 0);
+
+  const premierePrograms = stageConfigs.flatMap((stage) =>
     stage.contentMode === "premiere"
-      ? offsets[stage.id].map((startOffset, index) => {
-          const start = addMinutes(state.startTime, startOffset);
-          const end = addMinutes(start, 30);
+      ? stage.timeline.map((slot, index) => {
+          const start = combineDateAndTime(baseDate, slot.start);
+          const end = combineDateAndTime(baseDate, slot.end, start);
           return {
             id: `${stage.id}-${index}`,
             stageId: stage.id,
-            title: titlesByStage[stage.id][index],
+            title: slot.title,
+            start,
+            end,
+          };
+        })
+      : [],
+  );
+
+  if (premierePrograms.length > 0) {
+    const earliestStart = premierePrograms.reduce(
+      (earliest, program) => (program.start < earliest ? program.start : earliest),
+      premierePrograms[0].start,
+    );
+    const latestEnd = premierePrograms.reduce(
+      (latest, program) => (program.end > latest ? program.end : latest),
+      premierePrograms[0].end,
+    );
+    state.startTime = new Date(earliestStart);
+    state.endTime = new Date(latestEnd);
+  } else {
+    const rounded = new Date(baseDate);
+    rounded.setMinutes(Math.floor(baseDate.getMinutes() / 15) * 15, 0, 0);
+    state.startTime = addMinutes(rounded, -45);
+    state.endTime = addMinutes(state.startTime, 180);
+  }
+
+  return stageConfigs.flatMap((stage) =>
+    stage.contentMode === "premiere"
+      ? stage.timeline.map((slot, index) => {
+          const start = combineDateAndTime(baseDate, slot.start);
+          const end = combineDateAndTime(baseDate, slot.end, start);
+          return {
+            id: `${stage.id}-${index}`,
+            stageId: stage.id,
+            title: slot.title,
             start,
             end,
           };
@@ -282,7 +460,7 @@ function renderSelectedStage() {
 function syncScheduleModeUI(stage) {
   const isPremiere = stage?.contentMode === "premiere";
   elements.scheduleEyebrow.textContent = isPremiere ? "CLICK TO SWITCH" : "PICK A VIDEO";
-  elements.scheduleTitle.textContent = isPremiere ? "TIME TABLE" : "CONTENT LINEUP";
+  elements.scheduleTitle.textContent = "TIMETABLE";
   elements.scheduleLegend.hidden = !isPremiere;
   elements.timeScaleWrap.hidden = !isPremiere;
   elements.timetableFrame.classList.toggle("is-video-mode", !isPremiere);
@@ -294,14 +472,14 @@ function updateYouTubeChat(videoId) {
   if (!canEmbedChat) {
     elements.youtubeChatFrame.removeAttribute("src");
     elements.youtubeChatHelp.textContent =
-      "YouTubeライブチャットの埋め込みは、localhost などの http(s) 配信で開いた時に有効になります。";
+      "YouTube Chat is available only on http(s) hosts such as localhost or your deployed domain.";
     return;
   }
 
   const chatUrl = `https://www.youtube.com/live_chat?v=${videoId}&embed_domain=${window.location.hostname}`;
   elements.youtubeChatFrame.src = chatUrl;
   elements.youtubeChatHelp.textContent =
-    "選択中ステージのYouTubeライブチャットを表示しています。配信側でチャットが無効な場合は表示されません。";
+    "Selected stage chat is shown here. If chat is disabled on YouTube, this panel may stay empty.";
 }
 
 function bindMobileChatViewportBehavior() {
@@ -486,8 +664,21 @@ function addMinutes(date, minutes) {
   return new Date(date.getTime() + minutes * 60000);
 }
 
+function combineDateAndTime(baseDate, timeString, referenceStart = null) {
+  const [hours, minutes] = timeString.split(":").map(Number);
+  const combined = new Date(baseDate);
+  combined.setHours(hours, minutes, 0, 0);
+
+  if (referenceStart && combined <= referenceStart) {
+    combined.setDate(combined.getDate() + 1);
+  }
+
+  return combined;
+}
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
 init();
+
