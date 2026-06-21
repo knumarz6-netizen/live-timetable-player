@@ -4,12 +4,7 @@
     "title": "DAY 1",
     "youtubeUrl": "https://youtu.be/Y00aijSgbo4?si=5L1h0oQDcDNLDPPk",
     "timeline": [
-      { "start": "19:00", "end": "19:05", "title": "オープニング" },
-      { "start": "19:05", "end": "20:00", "title": "1-13 and mora..." },
-      { "start": "20:00", "end": "20:05", "title": "14 Baumkuchen-Man" },
-      { "start": "20:05", "end": "21:00", "title": "14-28 and mora..." },
-      { "start": "21:00", "end": "21:05", "title": "29 Jayz" },
-      { "start": "21:05", "end": "21:30", "title": "30-35 and mora..." }
+      { "start": "19:00", "end": "21:30", "title": "オープニング ～ 35 artists" }
     ]
   },
   "void": {
@@ -17,13 +12,7 @@
     "title": "DAY 2",
     "youtubeUrl": "https://www.youtube.com/watch?v=4ZcmQB-O_rA",
     "timeline": [
-      { "start": "19:00", "end": "19:05", "title": "オープニング" },
-      { "start": "19:05", "end": "20:00", "title": "1-13 and mora..." },
-      { "start": "20:00", "end": "20:05", "title": "14 ∫varts" },
-      { "start": "20:05", "end": "21:00", "title": "14-26 and mora..." },
-      { "start": "21:00", "end": "21:05", "title": "27 Pink Shih Tzu (AI CREATOR PONTA)" },
-      { "start": "21:05", "end": "21:45", "title": "28-35 and mora..." },
-      { "start": "21:45", "end": "21:50", "title": "フィナーレ＆エンディング" }
+      { "start": "19:00", "end": "21:50", "title": "オープニング ～ 35 artists ～ フィナーレ＆エンディング" }
     ]
   },
   "echo": {

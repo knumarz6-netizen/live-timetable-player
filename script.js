@@ -80,14 +80,9 @@ const elements = {
   playerProgramTitle: document.getElementById("playerProgramTitle"),
   playerMetaTimeLabel: document.getElementById("playerMetaTimeLabel"),
   playerProgramTime: document.getElementById("playerProgramTime"),
-  viewerMetaBlock: document.getElementById("viewerMetaBlock"),
-  viewerCount: document.getElementById("viewerCount"),
   clockNow: document.getElementById("clockNow"),
   clockDate: document.getElementById("clockDate"),
   stageStatus: document.getElementById("stageStatus"),
-  nextEventTitle: document.getElementById("nextEventTitle"),
-  nextEventMeta: document.getElementById("nextEventMeta"),
-  nextEventCountdown: document.getElementById("nextEventCountdown"),
   scheduleEyebrow: document.getElementById("scheduleEyebrow"),
   scheduleTitle: document.getElementById("scheduleTitle"),
   scheduleLegend: document.getElementById("scheduleLegend"),
@@ -364,13 +359,7 @@ function renderProgramCard(program, color) {
   const width = percentWidth(program.start, program.end);
   const cardLeft = isPremiere ? left : 0;
   const cardWidth = isPremiere ? width : 100;
-  const badgeText = isPremiere
-    ? isLive
-      ? "ON AIR"
-      : "SELECT"
-    : isSelected
-      ? "NOW PLAYING"
-      : "WATCH";
+  const badgeText = isSelected ? "NOW PLAYING" : isPremiere && isLive ? "ON AIR" : "SELECT";
 
   return `
     <button
@@ -390,8 +379,6 @@ function renderProgramCard(program, color) {
 }
 
 function renderStatusRail() {
-  const now = new Date();
-  const isPremiere = isPremiereStage();
   const stageStatuses = stageConfigs
     .map((stage) => {
       const liveProgram = getCurrentProgramForStage(stage.id);
@@ -410,22 +397,6 @@ function renderStatusRail() {
     .join("");
 
   elements.stageStatus.innerHTML = stageStatuses;
-
-  const nextProgram = getNextProgramForStage(state.selectedStageId, now);
-  if (isPremiere) {
-    elements.nextEventTitle.textContent = nextProgram ? nextProgram.title : "Closing Soon";
-    elements.nextEventMeta.textContent = nextProgram
-      ? `${stageNameFor(nextProgram.stageId)} | ${formatTime(nextProgram.start)} - ${formatTime(nextProgram.end)}`
-      : `${stageNameFor(state.selectedStageId)} | Schedule end`;
-    elements.nextEventCountdown.textContent = nextProgram
-      ? `starts in ${formatCountdown(nextProgram.start)}`
-      : "No upcoming slots";
-  } else {
-    const selectedProgram = getSelectedProgram();
-    elements.nextEventTitle.textContent = selectedProgram?.title ?? "Featured Video";
-    elements.nextEventMeta.textContent = `${stageNameFor(state.selectedStageId)} | ON-DEMAND VIDEO`;
-    elements.nextEventCountdown.textContent = "Pick any lineup card to relabel this stage.";
-  }
 }
 
 function renderSelectedStage() {
@@ -440,14 +411,12 @@ function renderSelectedStage() {
   elements.liveBadge.style.background = `${stage.color}22`;
   elements.liveBadge.textContent = isPremiere ? (isCurrent(program) ? "ON AIR" : "STANDBY") : "NOW PLAYING";
   elements.playerStageName.textContent = stage.name;
-  elements.playerProgramLabel.textContent = isPremiere ? "CURRENT SLOT" : "CURRENT PICK";
+  elements.playerProgramLabel.textContent = "CURRENT SLOT";
   elements.playerProgramTitle.textContent = program.title;
-  elements.playerMetaTimeLabel.textContent = isPremiere ? "TIME" : "TYPE";
+  elements.playerMetaTimeLabel.textContent = "TIME";
   elements.playerProgramTime.textContent = isPremiere
     ? `${formatTime(program.start)} - ${formatTime(program.end)}`
     : "ON-DEMAND VIDEO";
-  elements.viewerMetaBlock.hidden = !isPremiere;
-  elements.viewerCount.textContent = stage.viewers.toLocaleString("ja-JP");
   elements.chatStagePill.textContent = stage.name;
   const nextSrc = buildEmbedUrl(stage.videoId);
   if (elements.player.getAttribute("src") !== nextSrc) {
@@ -478,8 +447,7 @@ function updateYouTubeChat(videoId) {
 
   const chatUrl = `https://www.youtube.com/live_chat?v=${videoId}&embed_domain=${window.location.hostname}`;
   elements.youtubeChatFrame.src = chatUrl;
-  elements.youtubeChatHelp.textContent =
-    "Selected stage chat is shown here. If chat is disabled on YouTube, this panel may stay empty.";
+  elements.youtubeChatHelp.textContent = "";
 }
 
 function bindMobileChatViewportBehavior() {

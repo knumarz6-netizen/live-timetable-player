@@ -220,9 +220,9 @@ body::after {
 
 .player-footer {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.55rem;
-  padding: 0.62rem 0.72rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0.7rem 0.8rem;
 }
 
 .player-info-card {
@@ -235,8 +235,8 @@ body::after {
 }
 
 .player-info-card .meta-value {
-  font-size: 0.9rem;
-  line-height: 1.08;
+  font-size: 1rem;
+  line-height: 1.18;
 }
 
 .meta-value {
@@ -263,9 +263,7 @@ body::after {
   text-shadow: 0 0 22px rgba(255, 216, 91, 0.28);
 }
 
-.date-line,
-.next-meta,
-.countdown {
+.date-line {
   margin: 0.2rem 0 0;
   color: var(--muted);
 }
@@ -309,8 +307,7 @@ body::after {
 }
 
 .clock-card,
-.stage-status-card,
-.up-next-card {
+.stage-status-card {
   min-height: 100%;
 }
 
@@ -320,27 +317,12 @@ body::after {
   justify-content: center;
 }
 
-.stage-status-card h3,
-.up-next-card h3 {
-  font-size: 0.96rem;
-  line-height: 1.04;
-}
-
-.up-next-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
 .stage-status-card .stat-label,
-.up-next-card .stat-label,
 .clock-card .stat-label {
   margin-bottom: 0.2rem;
   font-size: 0.76rem;
 }
 
-.up-next-card .next-meta,
-.up-next-card .countdown,
 .clock-card .date-line {
   font-size: 0.74rem;
 }
@@ -605,11 +587,11 @@ body::after {
 
 .chat-panel {
   position: sticky;
-  top: 10px;
+  top: 8px;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  min-height: min(38rem, calc(100vh - 145px));
-  max-height: calc(100vh - 145px);
+  min-height: min(46rem, calc(100vh - 88px));
+  max-height: calc(100vh - 88px);
   padding: 0.72rem 0.72rem 0.68rem;
 }
 
@@ -647,7 +629,7 @@ body::after {
 .youtube-chat iframe {
   width: 100%;
   height: 100%;
-  min-height: 22rem;
+  min-height: 30rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.9rem;
   background: rgba(0, 0, 0, 0.35);
@@ -665,6 +647,60 @@ body::after {
   }
 }
 
+@media (min-width: 821px) and (max-height: 960px) {
+  .layout-grid {
+    gap: 0.5rem;
+  }
+
+  .chat-panel {
+    top: 6px;
+    min-height: calc(100vh - 126px);
+    max-height: calc(100vh - 126px);
+    padding: 0.55rem 0.55rem 0.5rem;
+  }
+
+  .chat-header {
+    gap: 0.45rem;
+    margin-bottom: 0.28rem;
+  }
+
+  .chat-title-line .eyebrow {
+    margin-bottom: 0.1rem;
+    font-size: 0.76rem;
+  }
+
+  .chat-header h2 {
+    font-size: 0.98rem;
+    line-height: 1;
+  }
+
+  .chat-stage-pill {
+    padding: 0.24rem 0.48rem;
+    font-size: 0.68rem;
+  }
+
+  .youtube-chat {
+    gap: 0.3rem;
+  }
+
+  .youtube-chat iframe {
+    min-height: 0;
+  }
+
+  .status-rail {
+    gap: 0.45rem;
+  }
+
+  .stat-card {
+    padding: 0.5rem 0.58rem;
+  }
+
+  .player-footer {
+    gap: 0.55rem;
+    padding: 0.58rem 0.62rem;
+  }
+}
+
 @media (max-width: 1180px) {
   .layout-grid,
   .hero-grid {
@@ -679,11 +715,11 @@ body::after {
   }
 
   .status-rail {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .player-footer {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -774,6 +810,8 @@ body::after {
 
   .status-rail {
     order: 4;
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
   }
 
   .player-info-card {
@@ -840,11 +878,6 @@ body::after {
 
   .section-note {
     flex-wrap: wrap;
-  }
-
-  .status-rail {
-    grid-template-columns: 1fr;
-    gap: 0.7rem;
   }
 
   .stat-card,
