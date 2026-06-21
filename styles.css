@@ -58,9 +58,9 @@ body::after {
 }
 
 .app-shell {
-  width: min(1680px, calc(100vw - 20px));
+  width: min(1920px, calc(100vw - 8px));
   margin: 0 auto;
-  padding: 2px 0 14px;
+  padding: 2px 0 12px;
 }
 
 .page-header {
@@ -99,9 +99,9 @@ body::after {
 
 .layout-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr) 507px;
   align-items: start;
-  gap: 0.7rem;
+  gap: 0.45rem;
 }
 
 .main-stack {
@@ -118,7 +118,7 @@ body::after {
 .side-stack {
   display: grid;
   align-self: start;
-  gap: 0.7rem;
+  gap: 0.45rem;
 }
 
 .panel {
@@ -149,7 +149,7 @@ body::after {
 }
 
 .player-card {
-  padding: 0.52rem 0.62rem 0.62rem;
+  padding: 0.32rem 0.36rem 0.36rem;
 }
 
 .player-topbar {
@@ -213,7 +213,7 @@ body::after {
 .player-frame iframe {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 9.2;
+  aspect-ratio: 16 / 9;
   border: 0;
   background: #000;
 }
@@ -642,6 +642,19 @@ body::after {
 }
 
 @media (min-width: 821px) {
+  .app-shell {
+    width: min(1960px, calc(100vw - 4px));
+  }
+
+  .layout-grid {
+    grid-template-columns: minmax(0, 1fr) 492px;
+    gap: 0.38rem;
+  }
+
+  .side-stack {
+    gap: 0.38rem;
+  }
+
   .page-player-topbar {
     justify-content: flex-start;
   }
