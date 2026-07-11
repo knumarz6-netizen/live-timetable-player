@@ -643,7 +643,9 @@ body::after {
 
 @media (min-width: 821px) {
   .app-shell {
-    width: min(1960px, calc(100vw - 4px));
+    /* Match a 90% desktop browser zoom while keeping the layout full width. */
+    width: min(1960px, calc((100vw - 4px) / 0.9));
+    zoom: 0.9;
   }
 
   .layout-grid {
@@ -714,7 +716,8 @@ body::after {
   }
 }
 
-@media (max-width: 1180px) {
+/* Keep the desktop two-column layout until its 90%-scaled equivalent width. */
+@media (max-width: 1062px) {
   .layout-grid,
   .hero-grid {
     grid-template-columns: 1fr;
