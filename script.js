@@ -188,10 +188,16 @@ function normalizeTimeline(incomingTimeline, fallbackTimeline) {
       start: normalizeTimeString(slot?.start),
       end: normalizeTimeString(slot?.end),
       title: typeof slot?.title === "string" ? slot.title.trim() : "",
+      seekSeconds: normalizeSeekSeconds(slot?.seekSeconds),
     }))
     .filter((slot) => slot.start && slot.end && slot.title);
 
   return normalized.length > 0 ? normalized : fallbackTimeline.map((slot) => ({ ...slot }));
+}
+
+function normalizeSeekSeconds(value) {
+  const seconds = Number(value);
+  return Number.isFinite(seconds) && seconds >= 0 ? Math.floor(seconds) : null;
 }
 
 function normalizeTimeString(value) {
@@ -244,30 +250,16 @@ function buildSchedule() {
   const baseDate = new Date();
   baseDate.setSeconds(0, 0);
 
-  const premierePrograms = stageConfigs.flatMap((stage) =>
-    stage.contentMode === "premiere"
-      ? stage.timeline.map((slot, index) => {
-          const start = combineDateAndTime(baseDate, slot.start);
-          const end = combineDateAndTime(baseDate, slot.end, start);
-          return {
-            id: `${stage.id}-${index}`,
-            stageId: stage.id,
-            title: slot.title,
-            start,
-            end,
-          };
-        })
-      : [],
-  );
+  const timelinePrograms = stageConfigs.flatMap((stage) => createTimelinePrograms(stage, baseDate));
 
-  if (premierePrograms.length > 0) {
-    const earliestStart = premierePrograms.reduce(
+  if (timelinePrograms.length > 0) {
+    const earliestStart = timelinePrograms.reduce(
       (earliest, program) => (program.start < earliest ? program.start : earliest),
-      premierePrograms[0].start,
+      timelinePrograms[0].start,
     );
-    const latestEnd = premierePrograms.reduce(
+    const latestEnd = timelinePrograms.reduce(
       (latest, program) => (program.end > latest ? program.end : latest),
-      premierePrograms[0].end,
+      timelinePrograms[0].end,
     );
     state.startTime = new Date(earliestStart);
     state.endTime = new Date(latestEnd);
@@ -279,18 +271,8 @@ function buildSchedule() {
   }
 
   return stageConfigs.flatMap((stage) =>
-    stage.contentMode === "premiere"
-      ? stage.timeline.map((slot, index) => {
-          const start = combineDateAndTime(baseDate, slot.start);
-          const end = combineDateAndTime(baseDate, slot.end, start);
-          return {
-            id: `${stage.id}-${index}`,
-            stageId: stage.id,
-            title: slot.title,
-            start,
-            end,
-          };
-        })
+    hasTimeline(stage)
+      ? createTimelinePrograms(stage, baseDate)
       : [
           {
             id: `${stage.id}-video`,
@@ -298,9 +280,29 @@ function buildSchedule() {
             title: stage.videoTitle ?? stage.name,
             start: state.startTime,
             end: state.endTime,
+            seekSeconds: 0,
           },
         ],
   );
+}
+
+function createTimelinePrograms(stage, baseDate) {
+  if (!hasTimeline(stage)) {
+    return [];
+  }
+
+  return stage.timeline.map((slot, index) => {
+    const start = combineDateAndTime(baseDate, slot.start);
+    const end = combineDateAndTime(baseDate, slot.end, start);
+    return {
+      id: `${stage.id}-${index}`,
+      stageId: stage.id,
+      title: slot.title,
+      start,
+      end,
+      seekSeconds: slot.seekSeconds,
+    };
+  });
 }
 
 function renderTimeScale() {
@@ -338,10 +340,8 @@ function renderTimetable() {
   Array.from(document.querySelectorAll(".program-card")).forEach((button) => {
     button.addEventListener("click", () => {
       state.selectedStageId = button.dataset.stageId;
-      state.selectedProgramId = isPremiereStage(button.dataset.stageId)
-        ? getCurrentProgramForStage(button.dataset.stageId)?.id ?? button.dataset.programId
-        : button.dataset.programId;
-      renderSelectedStage();
+      state.selectedProgramId = button.dataset.programId;
+      renderSelectedStage({ autoplay: true });
       renderStatusRail();
       renderTimetable();
     });
@@ -353,12 +353,13 @@ function renderTimetable() {
 function renderProgramCard(program, color) {
   const stage = getStageById(program.stageId);
   const isPremiere = stage?.contentMode === "premiere";
+  const hasTimedSlots = hasTimeline(stage);
   const isSelected = program.id === state.selectedProgramId;
-  const isLive = isCurrent(program);
+  const isLive = isPremiere && isCurrent(program);
   const left = percentForTime(program.start);
   const width = percentWidth(program.start, program.end);
-  const cardLeft = isPremiere ? left : 0;
-  const cardWidth = isPremiere ? width : 100;
+  const cardLeft = hasTimedSlots ? left : 0;
+  const cardWidth = hasTimedSlots ? width : 100;
   const badgeText = isSelected ? "NOW PLAYING" : isPremiere && isLive ? "ON AIR" : "SELECT";
 
   return `
@@ -370,7 +371,7 @@ function renderProgramCard(program, color) {
       style="left:${cardLeft}%; width:${cardWidth}%; --card-color:${color}"
     >
       <div>
-        ${isPremiere ? `<div class="slot-time">${formatTime(program.start)} - ${formatTime(program.end)}</div>` : ""}
+        ${hasTimedSlots ? `<div class="slot-time">${formatTime(program.start)} - ${formatTime(program.end)}</div>` : ""}
         <p class="slot-title">${program.title}</p>
       </div>
       <span class="slot-badge">${badgeText}</span>
@@ -383,7 +384,9 @@ function renderStatusRail() {
     .map((stage) => {
       const liveProgram = getCurrentProgramForStage(stage.id);
       const selected = stage.id === state.selectedStageId;
-      const statusText = stage.contentMode === "premiere" ? (liveProgram ? "ON AIR" : "NEXT UP") : "VIDEO";
+      const statusText = stage.contentMode === "premiere"
+        ? (liveProgram ? "ON AIR" : "NEXT UP")
+        : selected ? "NOW PLAYING" : "VIDEO";
       return `
         <div class="status-item ${selected ? "is-selected" : ""}">
           <div class="status-name" style="color:${stage.color}">${stage.name}</div>
@@ -399,10 +402,11 @@ function renderStatusRail() {
   elements.stageStatus.innerHTML = stageStatuses;
 }
 
-function renderSelectedStage() {
+function renderSelectedStage({ autoplay = false } = {}) {
   const stage = getSelectedStage();
   const program = getSelectedProgram();
   const isPremiere = stage?.contentMode === "premiere";
+  const hasTimedSlots = hasTimeline(stage);
   if (!stage || !program) {
     return;
   }
@@ -414,11 +418,11 @@ function renderSelectedStage() {
   elements.playerProgramLabel.textContent = "CURRENT SLOT";
   elements.playerProgramTitle.textContent = program.title;
   elements.playerMetaTimeLabel.textContent = "TIME";
-  elements.playerProgramTime.textContent = isPremiere
+  elements.playerProgramTime.textContent = hasTimedSlots
     ? `${formatTime(program.start)} - ${formatTime(program.end)}`
     : "ON-DEMAND VIDEO";
   elements.chatStagePill.textContent = stage.name;
-  const nextSrc = buildEmbedUrl(stage.videoId);
+  const nextSrc = buildEmbedUrl(stage.videoId, program.seekSeconds, autoplay);
   if (elements.player.getAttribute("src") !== nextSrc) {
     elements.player.src = nextSrc;
   }
@@ -428,11 +432,15 @@ function renderSelectedStage() {
 
 function syncScheduleModeUI(stage) {
   const isPremiere = stage?.contentMode === "premiere";
-  elements.scheduleEyebrow.textContent = isPremiere ? "CLICK TO SWITCH" : "PICK A VIDEO";
+  const hasTimedSlots = hasTimeline(stage);
+  elements.scheduleEyebrow.textContent = hasTimedSlots
+    ? (isPremiere ? "CLICK TO SWITCH" : "SELECT A CHAPTER")
+    : "PICK A VIDEO";
   elements.scheduleTitle.textContent = "TIMETABLE";
   elements.scheduleLegend.hidden = !isPremiere;
-  elements.timeScaleWrap.hidden = !isPremiere;
-  elements.timetableFrame.classList.toggle("is-video-mode", !isPremiere);
+  elements.timeScaleWrap.hidden = !hasTimedSlots;
+  elements.timetableFrame.classList.toggle("is-video-mode", !hasTimedSlots);
+  elements.timetableFrame.classList.toggle("is-archive-mode", hasTimedSlots && !isPremiere);
 }
 
 function updateYouTubeChat(videoId) {
@@ -572,6 +580,10 @@ function isPremiereStage(stageId = state.selectedStageId) {
   return getStageById(stageId)?.contentMode === "premiere";
 }
 
+function hasTimeline(stage) {
+  return Array.isArray(stage?.timeline) && stage.timeline.length > 0;
+}
+
 function isCurrent(program) {
   if (!program) {
     return false;
@@ -592,14 +604,19 @@ function percentWidth(start, end) {
   return (minutesBetween(start, end) / total) * 100;
 }
 
-function buildEmbedUrl(videoId) {
+function buildEmbedUrl(videoId, seekSeconds = null, autoplay = false) {
   const isMobile = window.matchMedia("(max-width: 820px)").matches;
   const params = new URLSearchParams({
-    autoplay: isMobile ? "0" : "1",
+    autoplay: autoplay || !isMobile ? "1" : "0",
     mute: "0",
     rel: "0",
     playsinline: "1",
   });
+
+  if (Number.isFinite(seekSeconds) && seekSeconds >= 0) {
+    params.set("start", String(Math.floor(seekSeconds)));
+  }
+
   return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
 }
 

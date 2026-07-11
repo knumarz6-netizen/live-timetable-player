@@ -378,6 +378,12 @@ body::after {
   display: none;
 }
 
+/* Archived videos keep their chapter times, but do not show a misleading live clock. */
+.timetable-frame.is-archive-mode .row-now-line,
+.timetable-frame.is-archive-mode .time-indicator {
+  display: none;
+}
+
 .time-scale-wrap {
   position: relative;
   display: grid;
