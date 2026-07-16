@@ -82,6 +82,7 @@ const elements = {
   playerProgramTitle: document.getElementById("playerProgramTitle"),
   playerMetaTimeLabel: document.getElementById("playerMetaTimeLabel"),
   playerProgramTime: document.getElementById("playerProgramTime"),
+  openYoutubeLink: document.getElementById("openYoutubeLink"),
   audienceCard: document.getElementById("audienceCard"),
   audienceLabel: document.getElementById("audienceLabel"),
   audienceValue: document.getElementById("audienceValue"),
@@ -449,6 +450,7 @@ function renderSelectedStage({ autoplay = false } = {}) {
   elements.playerProgramTime.textContent = hasTimedSlots
     ? formatProgramTime(program)
     : "ON-DEMAND VIDEO";
+  elements.openYoutubeLink.href = stage.youtubeUrl;
   elements.chatStagePill.textContent = stage.name;
   const nextSrc = buildEmbedUrl(stage.videoId, program.seekSeconds, autoplay);
   if (elements.player.getAttribute("src") !== nextSrc) {
