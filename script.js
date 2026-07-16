@@ -63,6 +63,7 @@
 let stageConfigs = DEFAULT_STAGE_CONFIGS.map(cloneStageConfig);
 
 const CONFIG_ENDPOINTS = ["/api/stage-config", "/stage-config.local.json"];
+const AUDIENCE_ENDPOINT = "/api/youtube-metrics";
 
 const state = {
   selectedStageId: "void",
@@ -70,6 +71,7 @@ const state = {
   schedule: [],
   startTime: null,
   endTime: null,
+  audienceMetrics: {},
 };
 
 const elements = {
@@ -80,6 +82,10 @@ const elements = {
   playerProgramTitle: document.getElementById("playerProgramTitle"),
   playerMetaTimeLabel: document.getElementById("playerMetaTimeLabel"),
   playerProgramTime: document.getElementById("playerProgramTime"),
+  audienceCard: document.getElementById("audienceCard"),
+  audienceLabel: document.getElementById("audienceLabel"),
+  audienceValue: document.getElementById("audienceValue"),
+  audienceHint: document.getElementById("audienceHint"),
   clockNow: document.getElementById("clockNow"),
   clockDate: document.getElementById("clockDate"),
   stageStatus: document.getElementById("stageStatus"),
@@ -100,7 +106,10 @@ const elements = {
 async function init() {
   await loadStageConfigs();
 
-  state.selectedStageId = getStageById(state.selectedStageId)?.id ?? stageConfigs[0]?.id ?? "void";
+  state.selectedStageId = getSelectableStageById(state.selectedStageId)?.id
+    ?? stageConfigs.find((stage) => !stage.isResting)?.id
+    ?? stageConfigs[0]?.id
+    ?? "void";
   state.schedule = buildSchedule();
   state.selectedProgramId = getDefaultProgramForStage(state.selectedStageId)?.id ?? state.schedule[0]?.id ?? null;
 
@@ -108,9 +117,11 @@ async function init() {
   renderTimetable();
   renderStatusRail();
   renderSelectedStage();
+  await loadAudienceMetrics();
   bindMobileChatViewportBehavior();
   tick();
   setInterval(tick, 1000);
+  setInterval(loadAudienceMetrics, 60000);
 }
 
 async function loadStageConfigs() {
@@ -160,6 +171,7 @@ function normalizeStageConfigs(data) {
 
     return {
       ...cloneStageConfig(defaultStage),
+      isResting: incoming.isResting === true,
       contentMode: incoming.contentMode === "premiere" ? "premiere" : "video",
       videoTitle:
         typeof incoming.title === "string" && incoming.title.trim()
@@ -179,8 +191,12 @@ function normalizeStageConfigs(data) {
 }
 
 function normalizeTimeline(incomingTimeline, fallbackTimeline) {
-  if (!Array.isArray(incomingTimeline) || incomingTimeline.length === 0) {
+  if (!Array.isArray(incomingTimeline)) {
     return fallbackTimeline.map((slot) => ({ ...slot }));
+  }
+
+  if (incomingTimeline.length === 0) {
+    return [];
   }
 
   const normalized = incomingTimeline
@@ -188,6 +204,7 @@ function normalizeTimeline(incomingTimeline, fallbackTimeline) {
       start: normalizeTimeString(slot?.start),
       end: normalizeTimeString(slot?.end),
       title: typeof slot?.title === "string" ? slot.title.trim() : "",
+      displayTime: normalizeDisplayTime(slot?.displayTime),
       seekSeconds: normalizeSeekSeconds(slot?.seekSeconds),
     }))
     .filter((slot) => slot.start && slot.end && slot.title);
@@ -198,6 +215,12 @@ function normalizeTimeline(incomingTimeline, fallbackTimeline) {
 function normalizeSeekSeconds(value) {
   const seconds = Number(value);
   return Number.isFinite(seconds) && seconds >= 0 ? Math.floor(seconds) : null;
+}
+
+function normalizeDisplayTime(value) {
+  return typeof value === "string" && value.trim()
+    ? value.trim().slice(0, 40)
+    : "";
 }
 
 function normalizeTimeString(value) {
@@ -250,7 +273,8 @@ function buildSchedule() {
   const baseDate = new Date();
   baseDate.setSeconds(0, 0);
 
-  const timelinePrograms = stageConfigs.flatMap((stage) => createTimelinePrograms(stage, baseDate));
+  const activeStages = stageConfigs.filter((stage) => !stage.isResting);
+  const timelinePrograms = activeStages.flatMap((stage) => createTimelinePrograms(stage, baseDate));
 
   if (timelinePrograms.length > 0) {
     const earliestStart = timelinePrograms.reduce(
@@ -270,7 +294,7 @@ function buildSchedule() {
     state.endTime = addMinutes(state.startTime, 180);
   }
 
-  return stageConfigs.flatMap((stage) =>
+  return activeStages.flatMap((stage) =>
     hasTimeline(stage)
       ? createTimelinePrograms(stage, baseDate)
       : [
@@ -300,6 +324,7 @@ function createTimelinePrograms(stage, baseDate) {
       title: slot.title,
       start,
       end,
+      displayTime: slot.displayTime,
       seekSeconds: slot.seekSeconds,
     };
   });
@@ -328,7 +353,7 @@ function renderTimetable() {
             <span>${stage.shortName}<br />STAGE</span>
             <small>${stage.venue}</small>
           </div>
-          <div class="track" data-track-stage="${stage.id}">
+          <div class="track ${stage.isResting ? "is-resting" : ""}" data-track-stage="${stage.id}">
             <div class="row-now-line"></div>
             ${programs.map((program) => renderProgramCard(program, stage.color)).join("")}
           </div>
@@ -371,7 +396,7 @@ function renderProgramCard(program, color) {
       style="left:${cardLeft}%; width:${cardWidth}%; --card-color:${color}"
     >
       <div>
-        ${hasTimedSlots ? `<div class="slot-time">${formatTime(program.start)} - ${formatTime(program.end)}</div>` : ""}
+        ${hasTimedSlots ? `<div class="slot-time">${formatProgramTime(program)}</div>` : ""}
         <p class="slot-title">${program.title}</p>
       </div>
       <span class="slot-badge">${badgeText}</span>
@@ -384,11 +409,13 @@ function renderStatusRail() {
     .map((stage) => {
       const liveProgram = getCurrentProgramForStage(stage.id);
       const selected = stage.id === state.selectedStageId;
-      const statusText = stage.contentMode === "premiere"
+      const statusText = stage.isResting
+        ? "OFF AIR"
+        : stage.contentMode === "premiere"
         ? (liveProgram ? "ON AIR" : "NEXT UP")
         : selected ? "NOW PLAYING" : "VIDEO";
       return `
-        <div class="status-item ${selected ? "is-selected" : ""}">
+        <div class="status-item ${selected ? "is-selected" : ""} ${stage.isResting ? "is-resting" : ""}">
           <div class="status-name" style="color:${stage.color}">${stage.name}</div>
           <div class="status-meta">
             <span class="status-light" style="color:${stage.color}; background:${stage.color}"></span>
@@ -411,6 +438,7 @@ function renderSelectedStage({ autoplay = false } = {}) {
     return;
   }
 
+  renderAudienceCard(stage);
   elements.liveBadge.style.borderColor = `${stage.color}88`;
   elements.liveBadge.style.background = `${stage.color}22`;
   elements.liveBadge.textContent = isPremiere ? (isCurrent(program) ? "ON AIR" : "STANDBY") : "NOW PLAYING";
@@ -419,7 +447,7 @@ function renderSelectedStage({ autoplay = false } = {}) {
   elements.playerProgramTitle.textContent = program.title;
   elements.playerMetaTimeLabel.textContent = "TIME";
   elements.playerProgramTime.textContent = hasTimedSlots
-    ? `${formatTime(program.start)} - ${formatTime(program.end)}`
+    ? formatProgramTime(program)
     : "ON-DEMAND VIDEO";
   elements.chatStagePill.textContent = stage.name;
   const nextSrc = buildEmbedUrl(stage.videoId, program.seekSeconds, autoplay);
@@ -428,6 +456,57 @@ function renderSelectedStage({ autoplay = false } = {}) {
   }
   syncScheduleModeUI(stage);
   updateYouTubeChat(stage.videoId);
+}
+
+async function loadAudienceMetrics() {
+  try {
+    const response = await fetch(AUDIENCE_ENDPOINT, {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const data = await response.json();
+    if (data?.metrics && typeof data.metrics === "object") {
+      state.audienceMetrics = data.metrics;
+      renderAudienceCard(getSelectedStage());
+    }
+  } catch {
+    // Local static hosting and deployments without an API key keep the placeholder visible.
+  }
+}
+
+function renderAudienceCard(stage) {
+  if (!stage || !elements.audienceCard) {
+    return;
+  }
+
+  const isPremiere = stage.contentMode === "premiere";
+  const metric = state.audienceMetrics[stage.videoId];
+  const count = isPremiere ? metric?.concurrentViewers : metric?.viewCount;
+
+  elements.audienceCard.classList.toggle("is-live-audience", isPremiere);
+  elements.audienceLabel.textContent = isPremiere ? "LIVE VIEWERS" : "TOTAL VIEWS";
+  elements.audienceValue.textContent = formatAudienceCount(count);
+  elements.audienceHint.textContent = count == null
+    ? "YOUTUBE DATA"
+    : isPremiere
+      ? "WATCHING NOW"
+      : "ON YOUTUBE";
+}
+
+function formatAudienceCount(value) {
+  const count = Number(value);
+  return Number.isFinite(count) && count >= 0
+    ? new Intl.NumberFormat("ja-JP").format(Math.floor(count))
+    : "—";
+}
+
+function formatProgramTime(program) {
+  return program.displayTime || `${formatTime(program.start)} - ${formatTime(program.end)}`;
 }
 
 function syncScheduleModeUI(stage) {
@@ -555,6 +634,11 @@ function getSelectedStage() {
 
 function getStageById(stageId) {
   return stageConfigs.find((stage) => stage.id === stageId);
+}
+
+function getSelectableStageById(stageId) {
+  const stage = getStageById(stageId);
+  return stage && !stage.isResting ? stage : null;
 }
 
 function getSelectedProgram() {

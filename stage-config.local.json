@@ -1,5 +1,6 @@
 {
   "echo": {
+    "isResting": true,
     "contentMode": "video",
     "title": "ROCK'AI SUMMER Fes 轟 Stage",
     "youtubeUrl": "https://youtu.be/a0X3rqz6D_k?si=iODwa0bwNJo7xxGc",
@@ -18,19 +19,29 @@
     ]
   },
   "neo": {
-    "contentMode": "video",
-    "title": "ROCK’AI SUMMER FES 閃 stage",
-    "youtubeUrl": "https://youtu.be/m0Kne7rH2BU?si=tJIzH0AEkK9OkNRY",
+    "contentMode": "premiere",
+    "title": "【真夏のAI音楽祭 初日！】AI SUPERLIVE SUMMER 2026 DAY 1",
+    "youtubeUrl": "https://www.youtube.com/watch?v=Y00aijSgbo4",
     "timeline": [
-      { "start": "20:00", "end": "22:33", "title": "ROCK’AI SUMMER FES 閃 stage", "seekSeconds": 0 }
+      {
+        "start": "19:00",
+        "end": "23:30",
+        "displayTime": "19:00 -",
+        "title": "【真夏のAI音楽祭 初日！】AI SUPERLIVE SUMMER 2026 DAY 1"
+      }
     ]
   },
   "void": {
-    "contentMode": "video",
-    "title": "ROCK’AI SUMMER Fes 【蕾 stage】",
-    "youtubeUrl": "https://youtu.be/xKXKbfvRwqQ?si=BVnrvgsl6w3QuVj2",
+    "contentMode": "premiere",
+    "title": "【真夏のAI音楽祭 クライマックス！】AI SUPERLIVE SUMMER 2026 DAY 2",
+    "youtubeUrl": "https://www.youtube.com/watch?v=4ZcmQB-O_rA",
     "timeline": [
-      { "start": "20:00", "end": "22:30", "title": "ROCK’AI SUMMER Fes 【蕾 stage】", "seekSeconds": 0 }
+      {
+        "start": "19:00",
+        "end": "23:30",
+        "displayTime": "19:00 -",
+        "title": "【真夏のAI音楽祭 クライマックス！】AI SUPERLIVE SUMMER 2026 DAY 2"
+      }
     ]
   }
 }
