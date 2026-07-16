@@ -1,8 +1,32 @@
 const CONFIG_KEY = "stage-config";
+const CACHE_TTL_SECONDS = 60;
 
 export const onRequestGet = async (context) => {
-  const videoIds = await getConfiguredVideoIds(context.env);
-  const apiKey = context.env?.YOUTUBE_API_KEY;
+  const cache = getEdgeCache();
+  const cacheKey = cache ? createCacheKey(context.request) : null;
+  const cachedResponse = cacheKey ? await cache.match(cacheKey) : null;
+
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  const response = await createMetricsResponse(context.env);
+
+  if (cacheKey) {
+    const cacheWrite = cache.put(cacheKey, response.clone());
+    if (typeof context.waitUntil === "function") {
+      context.waitUntil(cacheWrite);
+    } else {
+      await cacheWrite;
+    }
+  }
+
+  return response;
+};
+
+async function createMetricsResponse(env) {
+  const videoIds = await getConfiguredVideoIds(env);
+  const apiKey = env?.YOUTUBE_API_KEY;
 
   if (!apiKey || videoIds.length === 0) {
     return Response.json(
@@ -43,7 +67,18 @@ export const onRequestGet = async (context) => {
       { status: 200, headers: cacheHeaders() },
     );
   }
-};
+}
+
+function getEdgeCache() {
+  return typeof caches !== "undefined" ? caches.default : null;
+}
+
+function createCacheKey(request) {
+  const url = new URL(request.url);
+  url.pathname = "/api/youtube-metrics/cache";
+  url.search = "";
+  return new Request(url.toString());
+}
 
 async function getConfiguredVideoIds(env) {
   if (!env?.STAGE_CONFIG) {
@@ -94,6 +129,6 @@ function toNonNegativeInteger(value) {
 
 function cacheHeaders() {
   return {
-    "Cache-Control": "public, max-age=45, s-maxage=45",
+    "Cache-Control": `public, max-age=${CACHE_TTL_SECONDS}, s-maxage=${CACHE_TTL_SECONDS}`,
   };
 }
