@@ -117,7 +117,12 @@ body::after {
 
 .side-stack {
   display: grid;
-  align-self: start;
+  align-self: stretch;
+  gap: 0.45rem;
+}
+
+.sidebar-details {
+  display: grid;
   gap: 0.45rem;
 }
 
@@ -619,6 +624,7 @@ body::after {
 .chat-panel {
   position: sticky;
   top: 8px;
+  z-index: 2;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: min(46rem, calc(100vh - 88px));
@@ -693,6 +699,23 @@ body::after {
   }
 }
 
+@media (min-width: 1063px) {
+  .side-stack {
+    --chat-panel-height: min(46rem, calc(100vh - 88px));
+  }
+
+  .chat-panel {
+    height: var(--chat-panel-height);
+    min-height: 0;
+  }
+
+  .sidebar-details {
+    position: sticky;
+    top: calc(8px + var(--chat-panel-height) + 0.45rem);
+    z-index: 1;
+  }
+}
+
 @media (min-width: 821px) and (max-height: 960px) {
   .layout-grid {
     gap: 0.5rem;
@@ -747,6 +770,16 @@ body::after {
   }
 }
 
+@media (min-width: 1063px) and (max-height: 960px) {
+  .side-stack {
+    --chat-panel-height: calc(100vh - 126px);
+  }
+
+  .sidebar-details {
+    top: calc(6px + var(--chat-panel-height) + 0.38rem);
+  }
+}
+
 /* Keep the desktop two-column layout until its 90%-scaled equivalent width. */
 @media (max-width: 1062px) {
   .layout-grid,
@@ -794,6 +827,10 @@ body::after {
   .main-stack,
   .hero-grid,
   .side-stack {
+    display: contents;
+  }
+
+  .sidebar-details {
     display: contents;
   }
 

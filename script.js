@@ -499,6 +499,10 @@ function renderAudienceCard(stage) {
 }
 
 function formatAudienceCount(value) {
+  if (value == null || value === "") {
+    return "—";
+  }
+
   const count = Number(value);
   return Number.isFinite(count) && count >= 0
     ? new Intl.NumberFormat("ja-JP").format(Math.floor(count))
