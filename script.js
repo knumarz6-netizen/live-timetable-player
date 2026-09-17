@@ -66,7 +66,7 @@ const CONFIG_ENDPOINTS = ["/api/stage-config", "/stage-config.local.json"];
 const AUDIENCE_ENDPOINT = "/api/youtube-metrics";
 
 const state = {
-  selectedStageId: "void",
+  selectedStageId: "neo",
   selectedProgramId: null,
   schedule: [],
   startTime: null,
@@ -110,7 +110,7 @@ async function init() {
   state.selectedStageId = getSelectableStageById(state.selectedStageId)?.id
     ?? stageConfigs.find((stage) => !stage.isResting)?.id
     ?? stageConfigs[0]?.id
-    ?? "void";
+    ?? "neo";
   state.schedule = buildSchedule();
   state.selectedProgramId = getDefaultProgramForStage(state.selectedStageId)?.id ?? state.schedule[0]?.id ?? null;
 
